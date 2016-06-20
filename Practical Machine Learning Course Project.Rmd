@@ -1,0 +1,121 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Max Cao"
+date: "20 June 2016"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Intoduction
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. This project aims to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and predict the manner in which they did the exercise.
+
+##Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+##Data
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+# Model Building and Data Analysis
+
+```{r load packages}
+library(caret); 
+library(rattle)
+library(rpart.plot)
+library(rpart)
+library(randomForest)
+```
+## Data import and Data clean
+
+```{r load and clean data}
+set.seed(11111)
+# import data and replace all missing value by NA
+train <- read.csv("inTraining.csv", header = TRUE, na.strings = c("NA", "#DIV/0!", ""))
+test <- read.csv("inTesting.csv", header = TRUE, na.strings = c("NA", "#DIV/0!", ""))
+# check the dimmensions and the names 
+dim(train)
+dim(test)
+all.equal(colnames(test)[1:length(colnames(test))-1], colnames(train)[1:length(colnames(train))-1])
+# drop the inrelative variables and variables with all NAs
+train <- train[,-c(1:7)]
+train <- train[,colSums(is.na(train))==0]
+test <- test[,-(1:7)]
+test <- test[,colSums(is.na(test))==0]
+# check the cleaned datasets
+dim(train)
+dim(test)
+```
+## Cross Validation
+
+```{r cross validation}
+# partitioning the training data into 2 sets
+index <- createDataPartition(train$classe, p = 0.75, list = FALSE)
+inTrain <- train[index,]
+inTest <- train[-index,]
+# plot the frequency of each level of classe 
+plot(inTrain$classe, col = "red", main = "Variable classe in the inTrain dataset",
+                                  xlab = "classe levels",
+                                  ylab = "frequency")
+
+```
+This work builds two prediction models, decision tree and random forest.
+
+```{r prediction model: Decision Tree}
+# using decision tree to predict 
+modelTree <- rpart(classe ~ ., data = inTrain, method = "class")
+# plot the decision tree
+fancyRpartPlot(modelTree, main = "Decision trees")
+# predict
+prediction1 <- predict(modelTree, inTest, type = "class")
+# statistical results
+confusionMatrix(prediction1, inTest$classe)
+
+```
+
+```{r prediction model: Random Forest}
+# using random forest
+modelForest <- randomForest(classe ~ ., data= inTrain, method="class")
+# predict
+prediction2 <- predict(modelForest, inTest, type = "class")
+# statistical results
+confusionMatrix(prediction2, inTest$classe)
+
+```
+## conclusion
+
+According to the comparison, random forest algorithm is better than the decision tree algorithm.
+Precisely, the random forest method has an accuracy of 99.6% compared to 76.1% of decision tree.
+We choose the random tree method to test the 20 cases.
+
+# Predict the 20 cases
+
+Using random forest method to predict the 20 cases.
+
+```{r predict 20 cases}
+# using random forest method to predict the 20 cases
+predictionFinal <- predict(modelForest, test, type = "class")
+print(predictionFinal)
+
+```
+
+
+
+
+
+
+
+
+
+
+
